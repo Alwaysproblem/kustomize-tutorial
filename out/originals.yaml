@@ -1,0 +1,55 @@
+apiVersion: kubeflow.org/v1alpha2
+kind: MPIJob
+metadata:
+  name: tensorflow-mnist
+spec:
+  slotsPerWorker: 1
+  cleanPodPolicy: Running
+  mpiReplicaSpecs:
+    Launcher:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - args:
+            - "mpirun --allow-run-as-root python DeepFM-hvd.py"
+            command:
+            - /bin/bash
+            - -c
+            image: hvd
+            imagePullPolicy: IfNotPresent
+            name: mpi-launcher
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+    Worker:
+      replicas: 3
+      template:
+        spec:
+          containers:
+          - image: hvd
+            imagePullPolicy: IfNotPresent
+            name: mpi-worker
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+            volumeMounts:
+            - mountPath: /data
+              name: dataset
+            - mountPath: /models
+              name: models
+            - mountPath: /logs
+              name: tblogs
+          volumes:
+          - name: dataset
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/training/ProcessedDataset/
+              readOnly: true
+          - name: models
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/training/models/
+          - name: tblogs
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/TBlogs/DeepFM

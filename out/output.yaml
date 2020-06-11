@@ -1,0 +1,61 @@
+apiVersion: kubeflow.org/v1alpha2
+kind: MPIJob
+metadata:
+  labels:
+    app: fuck-you
+  name: customized-tensorflow-mnist
+  slotsPerWorker: 4
+spec:
+  cleanPodPolicy: Running
+  labels:
+    app: fuck-you
+  mpiReplicaSpecs:
+    Launcher:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - args:
+            - sleep 1d;
+            command:
+            - /bin/bash
+            - -c
+            image: hvd
+            imagePullPolicy: IfNotPresent
+            name: mpi-launcher
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+    Worker:
+      replicas: 3
+      template:
+        spec:
+          containers:
+          - image: hvd
+            imagePullPolicy: IfNotPresent
+            name: mpi-worker
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+            volumeMounts:
+            - mountPath: /data
+              name: dataset
+            - mountPath: /logs
+              name: tblogs
+            - mountPath: /data3
+              name: dataset3
+            - mountPath: /data0
+              name: dataset0
+          volumes:
+          - hostPath:
+              path: /home
+              readOnly: true
+            name: dataset
+          - hostPath:
+              path: /home/sdev/s3mount/yongxi/training/models/
+            name: models
+          - hostPath:
+              path: /home/sdev/s3mount/yongxi/TBlogs/DeepFM
+            name: tblogs

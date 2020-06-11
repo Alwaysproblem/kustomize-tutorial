@@ -1,0 +1,35 @@
+- op: add
+  path: /spec/mpiReplicaSpecs/Worker/template/spec/containers/0/volumeMounts/-
+  value: 
+    mountPath: /data0
+    name: dataset0
+
+- op: add
+  path: /spec/mpiReplicaSpecs/Worker/template/spec/containers/0/volumeMounts/3
+  value: 
+    mountPath: /data3
+    name: dataset3
+
+- op: add
+  path: /spec/mpiReplicaSpecs/Launcher/template/spec/containers/0/args
+  value: 
+    - "sleep 1d;"
+
+- op: replace
+  path: /spec/slotsPerWorker
+  value: 4
+
+- op: replace
+  path: /spec/mpiReplicaSpecs/Worker/template/spec/volumes/0/hostPath/path
+  value: /home
+
+- op: remove
+  path: /spec/mpiReplicaSpecs/Worker/template/spec/containers/0/volumeMounts/1
+
+- op: move
+  from: /spec/slotsPerWorker
+  path: /metadata/slotsPerWorker
+
+- op: copy
+  from: /metadata/labels
+  path: /spec/labels

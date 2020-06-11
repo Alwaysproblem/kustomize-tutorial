@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namePrefix: customized-
+commonLabels:
+  app: fuck-you
+
+# it a relative directory $path from `kustomize build $path`
+bases:
+- ../../base
+
+patchesStrategicMerge:
+- hvd-merge.yaml
