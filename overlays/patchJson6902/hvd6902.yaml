@@ -13,7 +13,7 @@
 - op: add
   path: /spec/mpiReplicaSpecs/Launcher/template/spec/containers/0/args
   value: 
-    - "sleep 1d;"
+  - sleep 1d;
 
 - op: replace
   path: /spec/slotsPerWorker
