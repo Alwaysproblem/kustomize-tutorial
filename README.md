@@ -52,28 +52,25 @@ some basic example and tutorial for this tool of Customization of kubernetes YAM
 
     - here is my project structure
 
-      ```text
-       -- kustomize-tutorial
-       |
-       -- base
-       |    |
-       |    -- hvd.yaml
-       |    |
-       |    -- kustomization.yaml
-       |
-       -- overlays
-             |
-             -- patch
-             |    |
-             |    -- kustomization.yaml
-             |    |
-             |    -- hvd-merge.yaml
-             |
-             -- patchJson6902
-                    |
-                    -- kustomization.yaml
-                    |
-                    -- hvd6902.yaml
+      ```bash
+      .
+      |-- README.md
+      |-- base
+      |   |-- hvd.yaml
+      |   `-- kustomization.yaml
+      |-- out
+      |   |-- originals.yaml
+      |   `-- output.yaml
+      |-- overlays
+      |   |-- patch
+      |   |   |-- hvd-merge.yaml
+      |   |   `-- kustomization.yaml
+      |   `-- patchJson6902
+      |       |-- hvd6902.yaml
+      |       `-- kustomization.yaml
+      `-- tutorialDoc
+          |-- kustomization.yaml
+          `-- patchJson6902.yaml
       ```
 
   - there is no restriction for directory with `-load_restrictions none` flag
