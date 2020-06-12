@@ -1,0 +1,7 @@
+FROM alwaysproblem/adalgohvd:latest
+
+RUN pip install --no-cache-dir deepctr[cpu] \
+    && rm -rf /examples/*
+
+COPY ./model.py /examples/model.py
+COPY ./config.json /examples/config.json

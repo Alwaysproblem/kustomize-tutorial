@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: horovod
+labels:
+  app: myApp
+  env: production
+fieldSpecs:
+- path: metadata/labels
+  create: true

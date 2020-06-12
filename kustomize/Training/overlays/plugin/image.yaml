@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: ImageTagTransformer
+metadata:
+  name: horovod
+imageTag:
+  name: hvd
+  newName: cvrhvd
+  newTag: train

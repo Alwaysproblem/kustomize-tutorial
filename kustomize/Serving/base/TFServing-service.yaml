@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tfserving-service
+spec:
+  selector:
+    app: ts-image
+  type: LoadBalancer
+  # type: NodePort
+  # clusterIP: 10.0.171.239
+  ports:
+    - name: tfserving-grpc
+      protocol: TCP
+      # specify the port on all the k8s node.
+      nodePort: 30020
+      port: 8500
+      # bind to the container port
+      targetPort: 8500
+    - name: tfserving-http
+      protocol: TCP
+      # specify the port on all the k8s node.
+      nodePort: 30021
+      port: 8501
+      # bind to the container port
+      targetPort: 8501

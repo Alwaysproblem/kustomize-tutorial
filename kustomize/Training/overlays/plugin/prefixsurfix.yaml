@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: PrefixSuffixTransformer
+metadata:
+  name: horovod
+prefix: yongxiy-
+suffix: -cvr-train
+fieldSpecs:
+  - path: metadata/name

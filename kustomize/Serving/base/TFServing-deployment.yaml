@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tfserving-deployment
+spec:
+  selector:
+    matchLabels:
+      app: ts-image
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: ts-image
+    spec:
+      containers:
+      - name: ts-image
+        image: tensorflow/serving
+        args:
+          - "--model_config_file=/models/config/Toy.config"
+        volumeMounts:
+        - mountPath: "/models"
+          name: ts-model
+        resources:
+          limits:
+            memory: "4Gi"
+            cpu: "4"
+        ports:
+        - containerPort: 8500
+        - containerPort: 8501
+      volumes:
+        - name: ts-model
+          persistentVolumeClaim:
+              claimName: tfserving-pvc
+      # restartPolicy: OnFailure

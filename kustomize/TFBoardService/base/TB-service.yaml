@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tensorboard-service
+spec:
+  selector:
+    app: tb-image
+  type: NodePort
+  # clusterIP: 10.0.171.239
+  ports:
+    - name: tensorboard
+      protocol: TCP
+      nodePort: 30022
+      port: 6006
+      targetPort: 6006

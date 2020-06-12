@@ -1,0 +1,70 @@
+apiVersion: kubeflow.org/v1alpha2
+kind: MPIJob
+metadata:
+  name: horovod
+spec:
+  # the number of process on a worker
+  slotsPerWorker: 1
+  cleanPodPolicy: Running
+  mpiReplicaSpecs:
+    Launcher:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - image: hvd
+          # - image: alwaysproblem/adalgohvd:latest
+            imagePullPolicy: IfNotPresent
+            name: mpi-launcher
+            command:
+            - /bin/bash
+            - -c
+            args:
+            #TODO: find out mpirun
+            # - "mpirun --allow-run-as-root python fashion.py"
+            - "mpirun --allow-run-as-root python DeepFM-hvd.py"
+            # - "sleep 1d;"
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+              # limits:
+              #   cpu: 2
+              #   memory: 20Gi
+    Worker:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - image: hvd
+          # - image: alwaysproblem/adalgohvd:latest
+            # use local image first.
+            imagePullPolicy: IfNotPresent
+            name: mpi-worker
+            resources:
+              request:
+                cpu: 1
+                memory: 3Gi
+              # limits:
+              #   cpu: 2
+              #   memory: 20Gi
+            volumeMounts:
+            - mountPath: /data
+              name: dataset
+            - mountPath: /models
+              name: models
+            - mountPath: /logs
+              name: tblogs
+          volumes:
+          - name: dataset
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/training/ProcessedDataset/
+              readOnly: true
+          - name: models
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/training/models/
+          - name: tblogs
+            hostPath:
+              path: /home/sdev/s3mount/yongxi/TBlogs/DeepFM
+          # - name: models
+          #   emptyDir: {}
