@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+# set -ex
 
 help_msg(){
     echo "this script should run on the n-adx-recall-2 and run "
@@ -19,9 +19,19 @@ esac
 
 # run on the n-adx-recall-2 server
 # docker image build -t $1 -f $2 ..
-docker save $1 > sync.tar
-sudo mv sync.tar /data02/
-ssh n-adx-recall-3 "docker load < /data02/sync.tar"
-ssh n-adx-recall-4 "docker load < /data02/sync.tar"
 
-sudo rm -rf /data02/sync.tar
+docker save $1 > sync.tar
+echo "saved image"
+sudo mv sync.tar /data02/
+echo "synchronizing"
+
+
+for LINE in $(kubectl get node --selector='!node-role.kubernetes.io/master' -o name | awk -F/ '{print $2}'); do
+  ssh $LINE "docker load < /data02/sync.tar"
+  echo "$LINE is finished."
+done
+
+if [[ -f "/data02/sync.tar" ]]; then
+  sudo rm -rf /data02/sync.tar
+  echo "removed sync.tar."
+fi

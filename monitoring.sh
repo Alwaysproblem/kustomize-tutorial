@@ -1,5 +1,5 @@
 #!/bin/bash
-if [[ -f "train.yaml" ]] then
+if [[ -f "train.yaml" ]]; then
     MPI_JOB_NAME=$(cat train.yaml | grep -E "^  name:(.*?)" | awk '/name:/ {print $2}')
 else
     MPI_JOB_NAME=$1

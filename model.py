@@ -246,7 +246,7 @@ NNconfig_dic["model_name"] = "DeepFM"
 
 # %%
 opt = tf.keras.optimizers.Adam(learning_rate=NNconfig_dic["lr"])
-opt_hvd = hvd.DistributedOptimizer(opt)
+opt_hvd = hvd.DistributedOptimizer(opt, compression=hvd.Compression.fp16)
 NNconfig_dic["optimizer"] = "Adam"
 
 
