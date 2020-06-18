@@ -33,7 +33,7 @@ spec:
         command:
         - /bin/bash
         - -c
-        image: tensorflow/tensorflow
+        image: alwaysproblem/tensorboard:profiler
         name: tb-image
         ports:
         - containerPort: 6006
