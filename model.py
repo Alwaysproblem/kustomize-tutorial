@@ -4,28 +4,39 @@
 # from IPython.display import display
 import json
 import os
-# %%
 from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
 from deepctr.inputs import SparseFeat, VarLenSparseFeat, get_feature_names
 from deepctr.models import DeepFM
-
-import horovod.tensorflow.keras as hvd
+import platform
 
 #%%
-# horovod initiation procedure
-hvd.init()
-num_workers = hvd.size()
-worker_index = hvd.rank()
-# if there are GPUs, disable use all graphic memory
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
+host = platform.node()
+host_index = {
+    "n-adx-recall-2": 0,
+    "n-adx-recall-3": 1,
+    "n-adx-recall-4": 2,
+}
+
+os.environ['TF_CONFIG'] = json.dumps({
+    'cluster': {
+        'worker': ["172.17.67.60:22222", "172.17.67.59:22222", "172.17.67.61:22222"]
+    },
+    'task': {'type': 'worker', 'index': host_index[host]}
+})
+
+#%%
+strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+options = tf.data.Options()
+options.experimental_distribute.auto_shard_policy = \
+                                    tf.data.experimental.AutoShardPolicy.DATA
+
+tf_config = json.loads(os.environ.get('TF_CONFIG') or '{}')
+worker_index = tf_config['task']['index']
+num_workers = strategy.num_replicas_in_sync
 # %%
 # sparse = [1, 2, 3, 8, 10, 12, 13, 68, 69, 151, 152, 163, 166, 77]
 # varlen = [65, 66, 67, 71, 72, 73, 74, 75, 76, 158, 159]
@@ -138,7 +149,9 @@ def Decode(file_paths: list, col_type: dict, target: str, batchsize: int,
 
 
 # %%
-batchsize = NNconfig_dic["batchsize"]
+
+batchsize = NNconfig_dic["batchsize"] * num_workers
+batchsize_per_worker = NNconfig_dic["batchsize"]
 epochs = NNconfig_dic["epochs"]
 buffer_size = NNconfig_dic["buffersize"]
 num_para = tf.data.experimental.AUTOTUNE
@@ -146,7 +159,7 @@ D_train_r = Decode(train_path,
             col_type, 
             target = 'label', 
             batchsize = batchsize,
-            block_length=batchsize,
+            block_length=batchsize_per_worker,
             num_parallel_calls=num_para,
             sparses= sparse_f, 
             varlens=varlen_f,
@@ -156,7 +169,7 @@ D_valid_r = Decode(valid_path,
             col_type, 
             target = 'label', 
             batchsize = batchsize, 
-            block_length=batchsize,
+            block_length=batchsize_per_worker,
             num_parallel_calls=num_para,
             sparses= sparse_f, 
             varlens=varlen_f,
@@ -171,22 +184,12 @@ if NNconfig_dic["shuffled"] == True:
 else:
     pass
 
-if gpus:
-    D_train = D_train_r\
-                .shard(num_workers, worker_index)\
-                .repeat()\
-                .apply(
-                    tf.data.experimental\
-                    .prefetch_to_device('/gpu:0', buffer_size=num_para)) 
-    D_valid = D_valid_r\
-                .shard(num_workers, worker_index)\
-                .repeat()\
-                .apply(
-                    tf.data.experimental\
-                    .prefetch_to_device('/gpu:0', buffer_size=num_para))
-else:
-    D_train = D_train_r.shard(num_workers, worker_index).repeat().prefetch(buffer_size=num_para)
-    D_valid = D_valid_r.shard(num_workers, worker_index).repeat().prefetch(buffer_size=num_para)
+
+D_train = D_train_r.with_options(options)
+D_valid = D_valid_r.with_options(options)
+
+D_train = D_train.repeat().prefetch(buffer_size=num_para)
+D_valid = D_valid.repeat().prefetch(buffer_size=num_para)
 
 
 # %%
@@ -217,41 +220,14 @@ model = DeepFM(linear_feature_columns, dnn_feature_columns,
                 dnn_activation=NNconfig_dic["dnn_activation"])
 NNconfig_dic["model_name"] = "DeepFM"
 
-# model = xDeepFM(linear_feature_columns, dnn_feature_columns,
-#                 dnn_hidden_units=NNconfig_dic["dnn_hidden_units"], 
-#                 cin_layer_size=NNconfig_dic["cin_layer_size"],
-#                 l2_reg_dnn=NNconfig_dic["l2_reg_dnn"],
-#                 l2_reg_embedding=NNconfig_dic["l2_reg_embedding"],
-#                 l2_reg_linear=NNconfig_dic["l2_reg_linear"],
-#                 l2_reg_cin=NNconfig_dic["l2_reg_cin"],
-#                 dnn_use_bn=NNconfig_dic["dnn_use_bn"],
-#                 dnn_activation=NNconfig_dic["dnn_activation"],
-#                 dnn_dropout=NNconfig_dic["dnn_dropout"])
-# NNconfig_dic["model_name"] = "xDeepFM"
-
-# model = AutoInt(linear_feature_columns, dnn_feature_columns,
-#                 dnn_hidden_units=NNconfig_dic["dnn_hidden_units"], 
-#                 l2_reg_dnn=NNconfig_dic["l2_reg_dnn"],
-#                 l2_reg_embedding=NNconfig_dic["l2_reg_embedding"],
-#                 l2_reg_linear=NNconfig_dic["l2_reg_linear"],
-#                 dnn_use_bn=NNconfig_dic["dnn_use_bn"],
-#                 dnn_activation=NNconfig_dic["dnn_activation"],
-#                 dnn_dropout=NNconfig_dic["dnn_dropout"],
-#                 att_layer_num=NNconfig_dic["att_layer_num"],
-#                 att_embedding_size=NNconfig_dic["att_embedding_size"],
-#                 att_head_num=NNconfig_dic["att_head_num"],
-#                )
-# NNconfig_dic["model_name"] = "AutoInt"
-
 
 # %%
 opt = tf.keras.optimizers.Adam(learning_rate=NNconfig_dic["lr"])
-opt_hvd = hvd.DistributedOptimizer(opt, compression=hvd.Compression.fp16)
 NNconfig_dic["optimizer"] = "Adam"
 
 
 # %%
-model.compile(optimizer=opt_hvd, loss=tf.losses.BinaryCrossentropy(),
+model.compile(optimizer=opt, loss=tf.losses.BinaryCrossentropy(),
                 metrics=[tf.keras.metrics.AUC()])
 
 log_dir="logs"+ os.path.sep + NNconfig_dic["model_name"] + "_res" + os.path.sep \
@@ -260,28 +236,18 @@ NN_config_path = "logs" + os.path.sep + NNconfig_dic["model_name"] + "_res" + os
               + datetime.now().strftime("%Y%m%d-%H%M%S") + "_" + "NNconfig.json"
 
 
-if worker_index == 0:
-    if not os.path.exists("logs" + os.path.sep + NNconfig_dic["model_name"] + "_res"):
-        os.makedirs("logs" + os.path.sep + NNconfig_dic["model_name"] + "_res")
-    with open(NN_config_path, "w+") as conf:
-        json.dump(NNconfig_dic, conf)
+# if worker_index == 0:
+#     if not os.path.exists("logs" + os.path.sep + NNconfig_dic["model_name"] + "_res"):
+#         os.makedirs("logs" + os.path.sep + NNconfig_dic["model_name"] + "_res")
+#     with open(NN_config_path, "w+") as conf:
+#         json.dump(NNconfig_dic, conf)
 
-# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch = 3)
-
-callbacks = [
-    # Horovod: broadcast initial variable states from rank 0 to all other processes.
-    # This is necessary to ensure consistent initialization of all workers when
-    # training is started with random weights or restored from a checkpoint.
-    hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-    hvd.callbacks.MetricAverageCallback(),
-]
-
-if worker_index == 0:
-    model.summary()
-    callbacks.append(tf.keras.callbacks.TensorBoard(log_dir='/logs', histogram_freq=1))
+callbacks = [tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1, profile_batch = 3),]
 
 
 # %%
+
+# TODO: edit epoch etc.
 model.fit(D_train, epochs=epochs, verbose=1 if worker_index == 0 else 0, validation_data=D_valid,
                     steps_per_epoch=max(len_train // batchsize + 1, num_workers) // num_workers , 
                     validation_steps=max(len_valid // batchsize + 1, num_workers) // num_workers,
