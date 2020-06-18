@@ -230,6 +230,8 @@ NNconfig_dic["optimizer"] = "Adam"
 model.compile(optimizer=opt, loss=tf.losses.BinaryCrossentropy(),
                 metrics=[tf.keras.metrics.AUC()])
 
+model.summary()
+
 log_dir="logs"+ os.path.sep + NNconfig_dic["model_name"] + "_res" + os.path.sep \
               + datetime.now().strftime("%Y%m%d-%H%M%S")
 NN_config_path = "logs" + os.path.sep + NNconfig_dic["model_name"] + "_res" + os.path.sep \
