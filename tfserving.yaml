@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tfserving-service
+spec:
+  ports:
+  - name: tfserving-grpc
+    nodePort: 30020
+    port: 8500
+    protocol: TCP
+    targetPort: 8500
+  - name: tfserving-http
+    nodePort: 30021
+    port: 8501
+    protocol: TCP
+    targetPort: 8501
+  selector:
+    app: ts-image
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tfserving-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ts-image
+  template:
+    metadata:
+      labels:
+        app: ts-image
+    spec:
+      containers:
+      - args:
+        - --model_config_file=/models/config/Toy.config
+        image: tensorflow/serving
+        name: ts-image
+        ports:
+        - containerPort: 8500
+        - containerPort: 8501
+        resources:
+          limits:
+            cpu: "4"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /models
+          name: ts-model
+      volumes:
+      - name: ts-model
+        persistentVolumeClaim:
+          claimName: tfserving-pvc
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    app: tfserving
+    type: s3fs-storage
+  name: tfserving-pv
+spec:
+  accessModes:
+  - ReadOnlyMany
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /home/sdev/s3mount/yongxi/serving/models
+  storageClassName: s3fs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tfserving-pvc
+spec:
+  accessModes:
+  - ReadOnlyMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      app: tfserving
+      type: s3fs-storage
+  storageClassName: s3fs
+  volumeMode: Filesystem

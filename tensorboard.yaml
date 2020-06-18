@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tensorboard-service
+spec:
+  ports:
+  - name: tensorboard
+    nodePort: 30022
+    port: 6006
+    protocol: TCP
+    targetPort: 6006
+  selector:
+    app: tb-image
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tensorboard-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tb-image
+  template:
+    metadata:
+      labels:
+        app: tb-image
+    spec:
+      containers:
+      - args:
+        - tensorboard --logdir /tmp/logs --bind_all
+        command:
+        - /bin/bash
+        - -c
+        image: tensorflow/tensorflow
+        name: tb-image
+        ports:
+        - containerPort: 6006
+        resources:
+          limits:
+            cpu: "4"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/logs
+          name: tb-logs
+      volumes:
+      - name: tb-logs
+        persistentVolumeClaim:
+          claimName: tensorboard-pvc
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    app: tensorboard
+    type: s3fs-storage
+  name: tensorboard-pv
+spec:
+  accessModes:
+  - ReadOnlyMany
+  capacity:
+    storage: 500Mi
+  hostPath:
+    path: /home/sdev/s3mount/yongxi/TBlogs/cvr
+  storageClassName: s3fs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tensorboard-pvc
+spec:
+  accessModes:
+  - ReadOnlyMany
+  resources:
+    requests:
+      storage: 500Mi
+  selector:
+    matchLabels:
+      app: tensorboard
+      type: s3fs-storage
+  storageClassName: s3fs
+  volumeMode: Filesystem
