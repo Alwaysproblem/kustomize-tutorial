@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: PrefixSuffixTransformer
+metadata:
+  name: multi-worker
+prefix: yongxiy-
+suffix: -cvr-train
+fieldSpecs:
+  - path: metadata/name

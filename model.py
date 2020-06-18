@@ -10,23 +10,23 @@ import numpy as np
 import tensorflow as tf
 from deepctr.inputs import SparseFeat, VarLenSparseFeat, get_feature_names
 from deepctr.models import DeepFM
-import platform
+# import platform
 
 #%%
+# # for test without k8s
+# host = platform.node()
+# host_index = {
+#     "n-adx-recall-2": 0,
+#     "n-adx-recall-3": 1,
+#     "n-adx-recall-4": 2,
+# }
 
-host = platform.node()
-host_index = {
-    "n-adx-recall-2": 0,
-    "n-adx-recall-3": 1,
-    "n-adx-recall-4": 2,
-}
-
-os.environ['TF_CONFIG'] = json.dumps({
-    'cluster': {
-        'worker': ["172.17.67.60:22222", "172.17.67.59:22222", "172.17.67.61:22222"]
-    },
-    'task': {'type': 'worker', 'index': host_index[host]}
-})
+# os.environ['TF_CONFIG'] = json.dumps({
+#     'cluster': {
+#         'worker': ["172.17.67.60:22222", "172.17.67.59:22222", "172.17.67.61:22222"]
+#     },
+#     'task': {'type': 'worker', 'index': host_index[host]}
+# })
 
 #%%
 strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()

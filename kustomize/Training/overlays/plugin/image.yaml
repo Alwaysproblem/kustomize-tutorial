@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: ImageTagTransformer
+metadata:
+  name: multi-worker
+imageTag:
+  name: kubeflow/tf2-mwms:k8s
+  newName: cvrhvd
+  newTag: train

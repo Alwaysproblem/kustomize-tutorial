@@ -1,0 +1,14 @@
+apiVersion: builtin
+kind: NamespaceTransformer
+metadata:
+  name: multi-worker
+  namespace: test
+fieldSpecs:
+- path: metadata/namespace
+  create: true
+# - path: subjects
+#   kind: RoleBinding
+#   group: rbac.authorization.k8s.io
+# - path: subjects
+#   kind: ClusterRoleBinding
+#   group: rbac.authorization.k8s.io

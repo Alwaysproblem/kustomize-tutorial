@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: PatchJson6902Transformer
+metadata:
+  name: multi-worker
+target:
+  group: kubeflow.org
+  version: v1
+  kind: TFJob
+  name: multi-worker
+path: operation.yaml
